@@ -227,6 +227,18 @@ def update_task_status(task_id: int, status: str):
     connection.row_factory = sqlite3.Row
 
     try:
+        existing_task = connection.execute(
+            """
+            SELECT planned_date
+            FROM tasks
+            WHERE id = ?
+            """,
+            (task_id,),
+        ).fetchone()
+
+        if existing_task is None:
+            return None
+
         connection.execute(
             """
             UPDATE tasks
@@ -235,6 +247,53 @@ def update_task_status(task_id: int, status: str):
             """,
             (status, task_id),
         )
+
+        other_tasks = connection.execute(
+            """
+            SELECT id, status
+            FROM tasks
+            WHERE planned_date = ? AND id != ?
+            ORDER BY position ASC, id ASC
+            """,
+            (existing_task["planned_date"], task_id),
+        ).fetchall()
+
+        active_task_ids = [
+            task["id"]
+            for task in other_tasks
+            if task["status"] != "done"
+        ]
+        completed_task_ids = [
+            task["id"]
+            for task in other_tasks
+            if task["status"] == "done"
+        ]
+
+        if status == "done":
+            ordered_task_ids = (
+                active_task_ids
+                + completed_task_ids
+                + [task_id]
+            )
+        else:
+            ordered_task_ids = (
+                active_task_ids
+                + [task_id]
+                + completed_task_ids
+            )
+
+        for position, ordered_task_id in enumerate(
+            ordered_task_ids,
+            start=1,
+        ):
+            connection.execute(
+                """
+                UPDATE tasks
+                SET position = ?
+                WHERE id = ?
+                """,
+                (position, ordered_task_id),
+            )
 
         connection.commit()
 

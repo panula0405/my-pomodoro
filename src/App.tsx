@@ -283,11 +283,27 @@ function App() {
 
       const updatedTask: Task = await response.json();
 
-      setTasks((previous) =>
-        previous.map((currentTask) =>
-          currentTask.id === updatedTask.id ? updatedTask : currentTask,
-        ),
-      );
+      setTasks((previous) => {
+        const remainingTasks = previous.filter(
+          (currentTask) => currentTask.id !== updatedTask.id,
+        );
+        const activeTasks = remainingTasks.filter(
+          (currentTask) => currentTask.status !== "done",
+        );
+        const completedTasks = remainingTasks.filter(
+          (currentTask) => currentTask.status === "done",
+        );
+
+        const orderedTasks =
+          updatedTask.status === "done"
+            ? [...activeTasks, ...completedTasks, updatedTask]
+            : [...activeTasks, updatedTask, ...completedTasks];
+
+        return orderedTasks.map((orderedTask, index) => ({
+          ...orderedTask,
+          position: index + 1,
+        }));
+      });
     } catch (error) {
       console.error("Could not update task:", error);
       setTasksError("Could not update the task.");
