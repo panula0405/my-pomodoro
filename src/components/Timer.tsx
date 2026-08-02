@@ -1,114 +1,116 @@
-import React, { useEffect, useRef, useState } from "react";
-import Button from "./Button";
+import { useEffect, useState } from "react";
 
-interface Props {
+interface TimerProps {
   timer: number;
+  onComplete: () => void;
 }
 
-const Timer = ({ timer }: Props) => {
-  const [timeLeft, setTimeLeft] = useState(timer * 60); // set seconds
-  const [isRunning, setIsRunning] = useState(false); // true when timer is running
-  const [isEditing, setIsEditing] = useState(false);
-  const [inputMinutes, setInputMinutes] = useState("");
-  const [savedTime, setSavedTime] = useState(timer * 60);
-  const inputRef = useRef<HTMLInputElement>(null);
+const Timer = ({ timer, onComplete }: TimerProps) => {
+  const durationSeconds = Math.max(1, Math.round(timer * 60));
+  const ringRadius = 108;
+  const ringCircumference = 2 * Math.PI * ringRadius;
 
+  const [timeLeft, setTimeLeft] = useState(durationSeconds);
+  const [isRunning, setIsRunning] = useState(false);
+  const [hasCompleted, setHasCompleted] = useState(false);
+
+  // Reset the clock when the setting changes.
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    setIsRunning(false);
+    setHasCompleted(false);
+    setTimeLeft(durationSeconds);
+  }, [durationSeconds]);
 
-    if (isRunning && timeLeft > 0) {
-      timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1); // subtract 1 second
-      }, 1000); // every second, 1000milli = 1 sek
+  // Count down by one second.
+  useEffect(() => {
+    if (!isRunning || timeLeft <= 0) {
+      return;
     }
 
-    return () => clearInterval(timer); // stop when component unmounts or dependencies change
+    const timeout = window.setTimeout(() => {
+      setTimeLeft((previous) => previous - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
   }, [isRunning, timeLeft]);
 
+  // Complete the session and reset the clock.
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setIsEditing(false);
-      }
-    };
-
-    if (isEditing) {
-      document.addEventListener("mousedown", handleClickOutside);
+    if (timeLeft === 0 && isRunning && !hasCompleted) {
+      setHasCompleted(true);
+      setIsRunning(false);
+      onComplete();
+      setTimeLeft(durationSeconds);
     }
+  }, [timeLeft, isRunning, hasCompleted, durationSeconds, onComplete]);
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isEditing]);
+  const toggleTimer = () => {
+    setHasCompleted(false);
+    setIsRunning((previous) => !previous);
+  };
+
+  const resetTimer = () => {
+    setIsRunning(false);
+    setHasCompleted(false);
+    setTimeLeft(durationSeconds);
+  };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
 
-    // Format as "MM:SS" with leading zeros
-    const paddedMins = mins.toString().padStart(2, "0");
-    const paddedSecs = secs.toString().padStart(2, "0");
+    return `${String(minutes).padStart(2, "0")}:${String(
+      remainingSeconds,
+    ).padStart(2, "0")}`;
+  };
 
-    return `${paddedMins}:${paddedSecs}`;
-  };
-  const startTime = () => {
-    setIsRunning(true);
-  };
-  const stopTime = () => {
-    setIsRunning(false);
-  };
-  const saveTime = () => {
-    const mins = parseInt(inputMinutes);
-    if (!isNaN(mins)) {
-      setTimeLeft(mins * 60);
-      setSavedTime(mins * 60);
-    }
-    setIsEditing(false);
-    setInputMinutes("");
-  };
-  const resetTime = () => {
-    setIsRunning(false);
-    setTimeLeft(savedTime);
-  };
+  const progress = timeLeft / durationSeconds;
+  const ringOffset = ringCircumference * (1 - progress);
 
   return (
-    <div>
-      {isEditing && (
-        <>
-          <input
-            ref={inputRef}
-            type="number"
-            value={inputMinutes}
-            onChange={(e) => setInputMinutes(e.target.value)}
-            autoFocus
-            className="timer-input"
-            placeholder="Enter minutes"
+    <section className="timer">
+      <div className="timer-ring">
+        <svg
+          className="timer-ring__svg"
+          viewBox="0 0 240 240"
+          aria-hidden="true"
+        >
+          <circle className="timer-ring__track" cx="120" cy="120" r="108" />
+          <circle
+            className="timer-ring__progress"
+            cx="120"
+            cy="120"
+            r={ringRadius}
+            strokeDasharray={ringCircumference}
+            strokeDashoffset={ringOffset}
           />
-          <p></p>
-          <Button type="button-s" onClick={saveTime}>
-            Save
-          </Button>
-        </>
-      )}
-      <div>
-        <h1 className="clock" onClick={() => setIsEditing(true)}>
-          {formatTime(timeLeft)}
-        </h1>
+        </svg>
 
-        <Button type="button-s" onClick={startTime}>
-          start
-        </Button>
-        <Button type="button-s" onClick={stopTime}>
-          stop
-        </Button>
-        <Button type="button-r" onClick={resetTime}>
-          reset
-        </Button>
+        <h1 className="clock">{formatTime(timeLeft)}</h1>
       </div>
-    </div>
+
+      <div className="timer-controls">
+        <button
+          type="button"
+          className="timer-button"
+          onClick={toggleTimer}
+          aria-label={isRunning ? "Pause timer" : "Start timer"}
+          title={isRunning ? "Pause timer" : "Start timer"}
+        >
+          {isRunning ? "❚❚" : "▶"}
+        </button>
+
+        <button
+          type="button"
+          className="timer-button timer-button--reset"
+          onClick={resetTimer}
+          aria-label="Reset timer"
+          title="Reset timer"
+        >
+          ↻
+        </button>
+      </div>
+    </section>
   );
 };
 
