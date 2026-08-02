@@ -260,6 +260,40 @@ function App() {
     }
   };
 
+  const handleToggleTask = async (task: Task) => {
+    const newStatus = task.status === "done" ? "todo" : "done";
+
+    try {
+      setTasksError(null);
+
+      const response = await fetch(
+        `${API_URL}/api/tasks/${task.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Updating task failed: ${response.status}`);
+      }
+
+      const updatedTask: Task = await response.json();
+
+      setTasks((previous) =>
+        previous.map((currentTask) =>
+          currentTask.id === updatedTask.id ? updatedTask : currentTask,
+        ),
+      );
+    } catch (error) {
+      console.error("Could not update task:", error);
+      setTasksError("Could not update the task.");
+    }
+  };
+
   return (
     <div className="app">
       <button
@@ -319,6 +353,7 @@ function App() {
           isPlanning={isPlanning}
           onPlanRequest={handlePlanningRequest}
           onDeleteTask={handleDeleteTask}
+          onToggleTask={handleToggleTask}
         />
       </div>
     </div>

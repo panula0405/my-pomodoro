@@ -381,6 +381,19 @@ h2 {
   border-radius: 16px;
   background: var(--color-primary);
   box-shadow: 0 3px 7px var(--color-dark);
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.task-card--done {
+  background: var(--color-dark);
+  opacity: 0.75;
+}
+
+.task-card--done h3,
+.task-card--done p {
+  text-decoration: line-through;
 }
 
 .task-card h3 {
@@ -421,6 +434,40 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.task-card__complete {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--color-pale);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-dark);
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.task-card__complete[aria-pressed="true"] {
+  background: var(--color-pale);
+}
+
+.task-card__complete:hover {
+  transform: scale(1.08);
+}
+
+.task-card__complete svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .task-card__delete {

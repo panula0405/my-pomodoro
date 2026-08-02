@@ -19,6 +19,7 @@ interface TaskListProps {
   isPlanning: boolean;
   onPlanRequest: (message: string) => Promise<boolean>;
   onDeleteTask: (taskId: number) => Promise<void>;
+  onToggleTask: (task: Task) => Promise<void>;
 }
 
 const TaskList = ({
@@ -29,6 +30,7 @@ const TaskList = ({
   isPlanning,
   onPlanRequest,
   onDeleteTask,
+  onToggleTask,
 }: TaskListProps) => {
   return (
     <section className={`task-panel ${isOpen ? "task-panel--open" : ""}`}>
@@ -52,7 +54,12 @@ const TaskList = ({
       {!isLoading && !error && tasks.length > 0 && (
         <ol className="task-list">
           {tasks.map((task) => (
-            <li key={task.id} className="task-card">
+            <li
+              key={task.id}
+              className={`task-card ${
+                task.status === "done" ? "task-card--done" : ""
+              }`}
+            >
               <div className="task-card__top">
                 <span
                   className={`task-card__priority task-card__priority--${task.priority}`}
@@ -68,9 +75,28 @@ const TaskList = ({
               {task.description && <p>{task.description}</p>}
 
               <div className="task-card__footer">
-                <span className="task-card__status">
-                  {task.status.replace("_", " ")}
-                </span>
+                <button
+                  type="button"
+                  className="task-card__complete"
+                  onClick={() => void onToggleTask(task)}
+                  aria-label={
+                    task.status === "done"
+                      ? `Mark ${task.title} as not completed`
+                      : `Mark ${task.title} as completed`
+                  }
+                  aria-pressed={task.status === "done"}
+                  title={
+                    task.status === "done"
+                      ? "Mark as not completed"
+                      : "Mark as completed"
+                  }
+                >
+                  {task.status === "done" && (
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m5 12 4 4L19 6" />
+                    </svg>
+                  )}
+                </button>
 
                 <button
                   type="button"
